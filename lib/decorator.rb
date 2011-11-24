@@ -81,6 +81,8 @@ class Module
              when Method then _f
              end
         _after = ->(_func, *_args, &_blk) do # the _after is called when created the a_function
+          # selfがこのクラスまたはモジュールのインスタンスになるようにinstance_execなどをすること
+          # define_methodなどでもselfは正しくなるのでそれでok
           _new_method = ->(*__args, &__blk) do # new function replaced to the a_function
             _func = case _func
                     when UnboundMethod then _func.bind self
