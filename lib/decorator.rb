@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
 class Object
@@ -19,14 +20,14 @@ class Object
       until decorators.empty?
         decorators.pop.tap do |f, args, blk|
           res = f.call func, *args, &blk
-          func = res if res.respond_to?(:to_proc) || Method === res || UnboundMethod === res
+          if res.respond_to? :to_proc
+            define_singleton_method funcname, &res
+            func = method func.name
+          elsif Method === res || UnboundMethod === res
+            define_singleton_method funcname, res
+            func = method func.name
+          end
         end
-      end
-      next if origin.equal? func
-      if func.respond_to? :to_proc
-        define_singleton_method funcname, &func
-      else
-        define_singleton_method funcname, func
       end
     end
   end
@@ -37,6 +38,30 @@ class Module
 
   private
 
+  # デコレータを作成するデコレータです。デコレータを作る場合は通常これをデコレータとします。
+  # example:
+  #    class Module
+  #      decorator
+  #      def wrap func, *args, &blk
+  #        puts "wrapped!"
+  #        proc { func.call *args, &blk }
+  # デコレータの第一引数は必ずMethodです。
+  # この場合のwrapはデコレータとして使用できます。
+  #    class TestClass
+  #      wrap
+  #      def wrapped *args, &blk
+  #        puts "IN!"
+  # もしデコレータに引数を渡した場合、それはすべてデコレータに一緒に渡されます。
+  #    class TestClass
+  #      wrap(*example_args)
+  #      def wrapped *args, &blk
+  #        puts "IN!"
+  # => ↓のargsにexample_argsが渡される
+  #      def wrap func, *args, &blk
+  #        puts "wrapped!"
+  #        proc { func.call *args, &blk }
+  # デコレータの戻り値がProcである場合、関数はそのProcに置き換えられます。
+  # たとえばこの場合、wrappedはwrap内のprocに置き換えられます。
   def decorator *args, &blk
 
     # for example,
@@ -61,8 +86,9 @@ class Module
                     when UnboundMethod then _func.bind self
                     when Method then _func
                     end
+
             res = _f.call _func, *args, &blk
-            if res.respond_to?(:to_proc)
+            if res.respond_to? :to_proc
               define_singleton_method _func.name, &res
               send _func.name, *__args, &__blk
             elsif Method === res || UnboundMethod === res
@@ -95,55 +121,15 @@ class Module
       until decorators.empty?
         decorators.pop.tap do |f, args, blk|
           res = f.call func, *args, &blk
-          func = res if res.respond_to?(:to_proc) || Method === res || UnboundMethod === res
+          if res.respond_to? :to_proc
+            define_method funcname, &res
+            func = instance_method func.name
+          elsif Method === res || UnboundMethod === res
+            define_method funcname, res
+            func = instance_method func.name
+          end
         end
-      end
-      next if origin.equal? func
-      if func.respond_to? :to_proc
-        define_method funcname, &func
-      else
-        define_method funcname, func
       end
     end
   end
 end
-
-class Module
-
-  decorator
-  def wrap func, *args, &blk
-    puts "wrapped!"
-    proc { func.call *args, &blk }
-  end
-end
-  
-module Kernel
-
-  wrap
-  def wrapped *args, &blk
-    puts "IN!"
-  end
-
-  decorator
-  def dec func, *args, &blk
-    proc { puts "deced!" }
-  end
-end
-
-wrapped
-wrapped
-# wrapped!
-# IN!
-# IN!
-
-self.instance_eval do
-  dec
-  def self.m *args, &blk
-    puts "in!"
-  end
-end
-
-self.m
-self.m
-# deced!
-# deced!

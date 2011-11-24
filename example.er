@@ -1,0 +1,39 @@
+require "./lib/decorator"
+
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+class Module
+
+  decorator
+  def wrap func, *args, &blk
+    puts "wrapped!"
+    proc { func.call *args, &blk }
+  
+class TestClass
+
+  wrap
+  def wrapped *args, &blk
+    puts "IN!"
+
+  decorator
+  def dec func, *args, &blk
+    proc { puts "deced!" }
+
+TestClass.new.instance_eval do
+  wrapped
+  wrapped
+
+  # wrapped!
+  # IN!
+  # IN!
+
+TestClass.new.instance_eval do
+  dec
+  def self.m *args, &blk
+    puts "in!"
+
+  self.m
+  self.m
+  # deced!
+  # deced!
