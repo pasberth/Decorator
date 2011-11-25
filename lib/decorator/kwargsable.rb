@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
-require 'decorator'
+require 'decorator/only'
 
 class Module
 
