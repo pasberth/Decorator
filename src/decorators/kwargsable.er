@@ -8,15 +8,14 @@ class Module
   decorator
   def kwargsable func, defaults={}
     params = func.parameters
-    ->(options, *args, &blk) do
+     xs = params.map { |i| i[1] }
+    ->(*args, &blk) do
 
-      if args.empty?
-        kwargs = options
-      else
+      if args.last.respond_to? :to_hash
         kwargs = args.pop
-        args = [options, *args]
+      else
+        kwargs = {}
 
-      xs = params.map { |i| i[1] }
       defaults.each do |key, default|
         next unless xs.include? key
         i = xs.index(key)

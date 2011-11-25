@@ -22,3 +22,13 @@ m('passed_key1', key3: 'passed_key3', unknown: 'unknown_key')
 # key2
 # passed_key3
 # {:unknown=>"unknown_key"}
+m
+# key1
+# key2
+# key3
+# {}
+m('passed_key1')
+# passed_key1
+# key2
+# key3
+# {}
