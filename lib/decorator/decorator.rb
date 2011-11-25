@@ -9,6 +9,37 @@ class Object
     @decorators ||= []
   end
 
+  private
+
+  def add_decorator _f, *args, &blk
+    _f = case _f
+         when UnboundMethod then _f.bind self
+         when Method then _f
+         end
+    _after = ->(_func, *_args, &_blk) do # the _after is called when created the a_function
+      # selfがこのクラスまたはモジュールのインスタンスになるようにinstance_execなどをすること
+      # define_methodなどでもselfは正しくなるのでそれでok
+      _new_method = ->(*__args, &__blk) do # new function replaced to the a_function
+        _func = case _func
+                when UnboundMethod then _func.bind self
+                when Method then _func
+                end
+
+        res = _f.call _func, *args, &blk
+        if res.respond_to? :to_proc
+          define_singleton_method _func.name, &res
+          send _func.name, *__args, &__blk
+        elsif Method === res || UnboundMethod === res
+          define_singleton_method _func.name, res
+          send _func.name, *__args, &__blk
+        end
+      end
+      return _new_method
+    end
+    decorators << [_after, args, blk]
+    true
+  end
+
   alias decoratable_original_singleton_method_added singleton_method_added
 
   def singleton_method_added funcname
@@ -35,9 +66,6 @@ end
 
 
 class Module
-
-  private
-
   # デコレータを作成するデコレータです。デコレータを作る場合は通常これをデコレータとします。
   # example:
   #    class Module
@@ -74,34 +102,8 @@ class Module
     #   def a_function
     #   ...
     after = ->(_f, *_a, &_b) do # the after is called when created the self.logging
-
       new_method = ->(*args, &blk) do # new function replaced to the self.logging
-        _f = case _f
-             when UnboundMethod then _f.bind self
-             when Method then _f
-             end
-        _after = ->(_func, *_args, &_blk) do # the _after is called when created the a_function
-          # selfがこのクラスまたはモジュールのインスタンスになるようにinstance_execなどをすること
-          # define_methodなどでもselfは正しくなるのでそれでok
-          _new_method = ->(*__args, &__blk) do # new function replaced to the a_function
-            _func = case _func
-                    when UnboundMethod then _func.bind self
-                    when Method then _func
-                    end
-
-            res = _f.call _func, *args, &blk
-            if res.respond_to? :to_proc
-              define_singleton_method _func.name, &res
-              send _func.name, *__args, &__blk
-            elsif Method === res || UnboundMethod === res
-              define_singleton_method _func.name, res
-              send _func.name, *__args, &__blk
-            end
-          end
-          return _new_method
-        end
-        decorators << [_after, args, blk]
-        true
+        add_decorator _f, *args, &blk
       end
 
       return new_method
