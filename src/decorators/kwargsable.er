@@ -27,4 +27,4 @@ class Module
         kwargs.delete key
         args[xs.index(key)] = arg
 
-      func.call *args, kwargs
+      func.call *args, kwargs, &blk

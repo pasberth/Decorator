@@ -31,7 +31,7 @@ class Module
         args[xs.index(key)] = arg
       end
 
-      func.call *args, kwargs
+      func.call *args, kwargs, &blk
     end
   end
 end
