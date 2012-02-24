@@ -1,0 +1,8 @@
+lib/decorator.rb
+lib/decorator/only.rb
+lib/decorator/decorator.rb
+lib/decorator/kwargsable.rb
+README.rdoc
+Rakefile
+History.txt
+Manifest.txt
